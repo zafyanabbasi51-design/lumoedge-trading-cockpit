@@ -1,0 +1,46 @@
+# Environment & Credentials (NEVER upload to GitHub!)
+.env
+*.env
+.env.local
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Heavy Sub-repos & Node Modules
+AI_Trading_Repos/
+node_modules/
+
+# Logs & Temporary Data
+*.log
+live_logs/
+scratch/
+paper_trading/reports/
+paper_trading/api_failures_and_rejections.jsonl
+
+# IDE & OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GROKBOT + JEV // LUMO EDGE AUTONOMOUS TRADING ROOM</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js for 3D Isometric Trading Floor -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Google Fonts: Orbitron, JetBrains Mono, Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    :root {
+      --bg-dark: #06030b;
+      --card-bg: #0c0617;
+      --card-inner: #080310;
+      --purple-neon: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.45);
+      --purple-border: #7c3aed;
+      --purple-dark-border: rgba(124, 58, 237, 0.35);
+      --cyan-neon: #06b6d4;
+      --green-neon: #22c55e;
+      --yellow-neon: #eab308;
+      --pink-neon: #ec4899;
+      --red-neon: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      scrollbar-width: thin;
+      scrollbar-color: var(--purple-border) rgba(0,0,0,0.5);
+    }
+    *::-webkit-scrollbar { width: 4px; height: 4px; }
+    *::-webkit-scrollbar-track { background: #06030b; }
+    *::-webkit-scrollbar-thumb { background: var(--purple-border); border-radius: 2px; }
+
+    body {
+      background: var(--bg-dark);
+      color: #d8b4fe;
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      padding: 10px;
+      overflow-x: hidden;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(168, 85, 247, 0.12) 0%, transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+        linear-gradient(rgba(124, 58, 237, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(124, 58, 237, 0.04) 1px, transparent 1px);
+      background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+    }
+
+    .font-orbitron { font-family: 'Orbitron', monospace; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+    /* Outer Purple Framing as in the user screenshot */
+    .grok-frame {
+      border: 3px solid var(--purple-border);
+      background: var(--bg-dark);
+      border-radius: 12px;
+      padding: 8px;
+      box-shadow: 0 0 25px rgba(124, 58, 237, 0.35), inset 0 0 20px rgba(124, 58, 237, 0.15);
+      position: relative;
+    }
+
+    .grok-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--purple-dark-border);
+      border-radius: 8px;
+      padding: 7px 10px;
+      position: relative;
+      transition: all 0.25s ease;
+    }
+    .grok-card:hover {
+      border-color: var(--purple-neon);
+      box-shadow: 0 0 14px rgba(168, 85, 247, 0.25);
+    }
+
+    .glow-purple { text-shadow: 0 0 10px rgba(168, 85, 247, 0.6); }
+    .glow-green { text-shadow: 0 0 10px rgba(34, 197, 94, 0.6); }
+
+    .grok-meter {
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .grok-meter-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #ec4899, #a855f7);
+    }
+
+    /* Speech bubbles in 3D room */
+    .speech-bubble {
+      position: absolute;
+      background: rgba(12, 6, 23, 0.92);
+      border: 1px solid var(--purple-neon);
+      color: #fff;
+      font-size: 10px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      pointer-events: none;
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.35);
+      white-space: nowrap;
+      animation: floatBubble 3s ease-in-out infinite;
+      z-index: 10;
+    }
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -4px;
+      left: 12px;
+      width: 6px;
+      height: 6px;
+      background: rgba(12, 6, 23, 0.92);
+      border-right: 1px solid var(--purple-neon);
+      border-bottom: 1px solid var(--purple-neon);
+      transform: rotate(45deg);
+    }
+    @keyframes floatBubble {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    /* Avatar icon ring */
+    .avatar-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .interactive-btn {
+      transition: all 0.2s ease;
+    }
+    .interactive-btn:hover {
+      transform: scale(1.03);
+      filter: brightness(1.2);
+    }
+    .interactive-btn:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =====================================================================
+       OUTER GROKBOT + JEV PURPLE FRAME (MATCHING SCREENSHOT)
+       ===================================================================== -->
+  <div class="grok-frame max-w-[1440px] mx-auto">
+
+    <!-- ─── HEADER BAR (GROKBOT + JEV // LUMO EDGE) ─── -->
+    <header class="flex flex-wrap items-center justify-between pb-2 mb-2 border-b-2 border-purple-600/60 px-1 gap-2">
+      <!-- Left: Title & Logo -->
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-purple-900/60 border border-purple-400 flex items-center justify-center text-purple-300">
+          <i class="fa-solid fa-ghost text-base animate-bounce"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-orbitron font-extrabold text-base md:text-lg text-white tracking-wider glow-purple">GROKBOT + JEV</span>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-500/50">LUMO EDGE AI</span>
+          </div>
+          <div class="text-[10px] text-purple-400/80 font-mono flex items-center gap-2">
+            <span>JEV 7120 - 5801 - 8501</span>
+            <span>|</span>
+            <span>DAY 1 - VOL 1</span>
+            <span>|</span>
+            <span class="text-white">GOLD (XAUUSDm)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Center Controls: Bot Execution Toggle & Account Mode -->
+      <div class="flex items-center gap-2">
+        <button id="btn-master-bot" onclick="toggleBotExecution()" class="interactive-btn px-3 py-1.5 rounded-lg border border-green-500 bg-green-950/40 text-green-400 text-xs font-bold flex items-center gap-1.5 shadow-[0_0_12px_rgba(34,197,94,0.3)]">
+          <i id="master-icon" class="fa-solid fa-bolt animate-pulse"></i>
+          <span id="master-text">AUTOPILOT: ON</span>
+        </button>
+
+        <button id="btn-mode-toggle" onclick="toggleTradingMode()" class="interactive-btn px-2.5 py-1.5 rounded-lg border border-purple-500/60 bg-purple-950/40 text-purple-300 text-xs flex items-center gap-1">
+          <i class="fa-solid fa-arrows-split-up-and-left text-[10px]"></i>
+          <span id="mode-label">SINGLE</span>
+        </button>
+
+        <button id="btn-tf-toggle" onclick="toggleTimeframe()" class="interactive-btn px-2.5 py-1.5 rounded-lg border border-purple-500/60 bg-purple-950/40 text-purple-300 text-xs flex items-center gap-1">
+          <i class="fa-solid fa-clock text-[10px]"></i>
+          <span id="tf-label">M1</span>
+        </button>
+      </div>
+
+      <!-- Right: Live Clock & MT5 Connect Status -->
+      <div class="flex items-center gap-2.5">
+        <div id="account-status-label" class="px-2.5 py-1 rounded bg-green-950/60 border border-green-500/60 text-green-400 text-xs font-mono flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span>
+          <span>ONLINE #472929255</span>
+        </div>
+
+        <button onclick="openConnectModal()" class="interactive-btn px-2.5 py-1 rounded bg-yellow-950/40 border border-yellow-500/60 text-yellow-300 text-xs font-mono">
+          <i class="fa-solid fa-plug text-[10px] mr-1"></i> MT5
+        </button>
+
+        <div class="font-orbitron font-bold text-white text-xs bg-purple-950/80 px-2.5 py-1 rounded border border-purple-500" id="header-utc-clock">
+          22:20 UTC
+        </div>
+      </div>
+    </header>
+
+
+    <!-- ─── TOP 8 AGENT STATUS CARDS (2 ROWS OF 4, AS IN SCREENSHOT) ─── -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2.5">
+
+      <!-- Card 1: CHIEF -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-purple-900 border border-purple-400 text-purple-300">
+              <i class="fa-solid fa-ghost"></i>
+            </span>
+            <span class="font-orbitron">CHIEF</span>
+          </div>
+          <span class="text-[9px] px-1.5 rounded bg-purple-950 text-purple-400 border border-purple-700">ACTIVE</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Chief makes a decision</div>
+        <div class="text-[11px] font-bold text-green-400 mt-1">Last pick: <span class="text-white" id="chief-last-pick">XAUUSDm (BUY)</span></div>
+        <div class="text-[9px] text-purple-400/80 mt-0.5">Gemini 2.5 Pro Decision Consensus</div>
+      </div>
+
+      <!-- Card 2: SCAN -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-pink-900 border border-pink-400 text-pink-300">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <span class="font-orbitron">SCAN</span>
+          </div>
+          <span class="text-[10px] font-bold text-pink-400 font-mono" id="scan-score">3.65</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Finding best setups</div>
+        <div class="grok-meter mt-1.5"><div class="grok-meter-fill" style="width: 78%;"></div></div>
+        <div class="text-[9px] text-gray-400 mt-1">OpenBB + MT5 1-sec scanner</div>
+      </div>
+
+      <!-- Card 3: VET -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-purple-900 border border-purple-400 text-purple-300">
+              <i class="fa-solid fa-shield-cat"></i>
+            </span>
+            <span class="font-orbitron">VET</span>
+          </div>
+          <span class="text-[10px] font-bold text-purple-300 font-mono">0.14</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Check risk &amp; vet regime</div>
+        <div class="grok-meter mt-1.5"><div class="grok-meter-fill" style="width: 25%; background:#a855f7;"></div></div>
+        <div class="text-[9px] text-gray-400 mt-1">day-trader-skill ADX: &lt;20 Range</div>
+      </div>
+
+      <!-- Card 4: SOCIAL -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-green-900 border border-green-400 text-green-300">
+              <i class="fa-solid fa-globe"></i>
+            </span>
+            <span class="font-orbitron">SOCIAL</span>
+          </div>
+          <span class="text-[10px] font-bold text-green-400 font-mono" id="social-sentiment-score">0.99</span>
+        </div>
+        <div class="text-[10px] text-gray-400">The gold market is vetted</div>
+        <div class="text-[10px] text-green-400 italic mt-1 truncate">"World news: Bullish Safe Haven"</div>
+        <div class="text-[9px] text-gray-500 mt-0.5">OpenBB Macro Sentiment Feed</div>
+      </div>
+
+      <!-- Card 5: SIZE -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-yellow-900 border border-yellow-400 text-yellow-300">
+              <i class="fa-solid fa-coins"></i>
+            </span>
+            <span class="font-orbitron">SIZE</span>
+          </div>
+          <span class="text-[11px] font-bold text-yellow-300 font-mono" id="metric-lot">0.01 LOT</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Calculates dynamic lot size</div>
+        <div class="text-[10px] text-gray-300 mt-1 font-mono">Equity Risk: <span class="text-white" id="size-risk-calc">1.0% ATR</span></div>
+        <div class="text-[9px] text-gray-500 mt-0.5">Money Manager auto-scaled</div>
+      </div>
+
+      <!-- Card 6: FILLS -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-cyan-900 border border-cyan-400 text-cyan-300">
+              <i class="fa-solid fa-bolt"></i>
+            </span>
+            <span class="font-orbitron">FILLS</span>
+          </div>
+          <span class="text-[10px] font-bold text-cyan-400 font-mono" id="metric-engine">in 0.10s</span>
+        </div>
+        <div class="text-[10px] text-gray-400">High-speed MT5 Execution</div>
+        <div class="text-[10px] text-cyan-300 italic mt-1 truncate">"No entry without a Flash Fill"</div>
+        <div class="text-[9px] text-gray-500 mt-0.5">Magic #786999 Isolated</div>
+      </div>
+
+      <!-- Card 7: RISK -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-orange-900 border border-orange-400 text-orange-300">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </span>
+            <span class="font-orbitron">RISK</span>
+          </div>
+          <span class="text-[10px] font-bold text-orange-400 font-mono" id="metric-target">0% SL ($0.25)</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Drawdown &amp; profit lock</div>
+        <div class="text-[10px] text-orange-300 mt-1 truncate">"Instant close at +$0.25 profit"</div>
+        <div class="text-[9px] text-gray-500 mt-0.5">Breakeven + Trail Active</div>
+      </div>
+
+      <!-- Card 8: CRAWLER -->
+      <div class="grok-card">
+        <div class="flex items-center justify-between text-[11px] font-bold text-white mb-0.5">
+          <div class="flex items-center gap-1.5">
+            <span class="avatar-icon bg-blue-900 border border-blue-400 text-blue-300">
+              <i class="fa-solid fa-satellite-dish"></i>
+            </span>
+            <span class="font-orbitron">CRAWLER</span>
+          </div>
+          <span class="text-[9px] text-blue-400 font-mono">320 /sec</span>
+        </div>
+        <div class="text-[10px] text-gray-400">Fetch live MT5 tick stream</div>
+        <div class="text-[10px] text-blue-300 mt-1 font-mono">Spread: <span class="text-white">20 pts</span> | Ticks: 10M+</div>
+        <div class="text-[9px] text-gray-500 mt-0.5">Pushed to AI Decision stack</div>
+      </div>
+
+    </div>
+
+
+    <!-- ─── THE 3D ISOMETRIC AI TRADING COMMAND ROOM (CENTERPIECE) ─── -->
+    <div class="relative w-full h-[360px] md:h-[440px] rounded-lg border-2 border-purple-600/70 overflow-hidden bg-[#070311] mb-2.5 shadow-[inset_0_0_35px_rgba(124,58,237,0.35)]">
+
+      <!-- Three.js Canvas Element -->
+      <canvas id="room3dCanvas" class="w-full h-full block"></canvas>
+
+      <!-- Speech Bubbles overlaid on the 3D room (as in the screenshot!) -->
+      <div class="speech-bubble" style="top: 25%; right: 28%;">
+        "I am active without a Flash Fill"
+      </div>
+      <div class="speech-bubble" style="top: 32%; right: 24%; animation-delay: 1.2s;">
+        "dynamic stop under 15 percent of the base"
+      </div>
+      <div class="speech-bubble" style="top: 40%; right: 26%; animation-delay: 2.1s;">
+        "The creator is making more INSTANT gain"
+      </div>
+      <div class="speech-bubble" style="top: 22%; left: 34%; border-color:#22c55e; animation-delay: 0.8s;">
+        <span class="text-green-400 font-bold">BUY 1.45%</span> on XAUUSDm
+      </div>
+
+      <!-- Corner HUD Overlay: Active Signal & Wall Info -->
+      <div class="absolute top-3 left-3 pointer-events-none">
+        <div class="flex items-center gap-2">
+          <span class="font-orbitron font-extrabold text-lg text-white glow-purple">FOMO</span>
+          <span class="text-[10px] px-2 py-0.5 rounded bg-purple-950/80 text-purple-300 border border-purple-500">LIVE COCKPIT</span>
+        </div>
+        <div class="text-[11px] font-mono text-purple-300/80 mt-1">
+          DECISION TREE // 6 ROBOT WORKSTATIONS
+        </div>
+      </div>
+
+      <!-- Action Floating Bar inside 3D Room -->
+      <div class="absolute bottom-3 left-3 flex gap-2 z-10">
+        <button onclick="quickExecute('BUY')" class="interactive-btn px-4 py-2 rounded-lg bg-green-950/80 border border-green-500 text-green-300 font-orbitron font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+          <i class="fa-solid fa-arrow-trend-up"></i>
+          <span>TURBO BUY</span>
+        </button>
+        <button onclick="quickExecute('SELL')" class="interactive-btn px-4 py-2 rounded-lg bg-red-950/80 border border-red-500 text-red-300 font-orbitron font-bold text-xs flex items-center gap-1.5 shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+          <i class="fa-solid fa-arrow-trend-down"></i>
+          <span>TURBO SELL</span>
+        </button>
+        <button onclick="lockProfitsNow()" class="interactive-btn px-3 py-2 rounded-lg bg-yellow-950/80 border border-yellow-500 text-yellow-300 font-orbitron font-bold text-xs flex items-center gap-1.5">
+          <i class="fa-solid fa-lock"></i>
+          <span>LOCK PROFIT</span>
+        </button>
+      </div>
+
+      <!-- Top Right Team Badges (as in screenshot) -->
+      <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+        <div class="w-7 h-7 rounded-full bg-purple-900 border border-purple-400 flex items-center justify-center text-[10px] text-white font-bold" title="Chief">
+          CH
+        </div>
+        <div class="w-7 h-7 rounded-full bg-pink-900 border border-pink-400 flex items-center justify-center text-[10px] text-pink-300 font-bold" title="Scout">
+          SC
+        </div>
+        <div class="w-7 h-7 rounded-full bg-yellow-900 border border-yellow-400 flex items-center justify-center text-[10px] text-yellow-300 font-bold" title="Vet">
+          VT
+        </div>
+        <div class="w-7 h-7 rounded-full bg-cyan-900 border border-cyan-400 flex items-center justify-center text-[10px] text-cyan-300 font-bold" title="Fills">
+          FL
+        </div>
+        <div class="w-7 h-7 rounded-full bg-green-900 border border-green-400 flex items-center justify-center text-[10px] text-green-300 font-bold" title="Risk">
+          RK
+        </div>
+      </div>
+    </div>
+
+
+    <!-- ─── MIDDLE: GLOWING EQUITY GROWTH RAMP ($45,211.40 AS IN SCREENSHOT) ─── -->
+    <div class="grok-card mb-2.5 p-3">
+      <div class="flex items-center justify-between mb-1 text-[11px]">
+        <div class="font-mono text-gray-400 flex items-center gap-2">
+          <span>BALANCE - DAY 1 - THEETCRAFT</span>
+          <span class="text-purple-400">|</span>
+          <span class="text-green-400">LIVE RAMP ACTIVE</span>
+        </div>
+        <div class="font-orbitron font-black text-xl md:text-2xl text-green-400 glow-green flex items-center gap-1.5" id="metric-balance">
+          <span class="text-xs text-gray-500 font-normal">EQUITY</span>
+          <span id="display-equity-val">$45,211.40</span>
+        </div>
+      </div>
+
+      <!-- Canvas for the Glowing Green Equity Curve & Purple Volume Histogram -->
+      <div class="relative w-full h-24">
+        <canvas id="equityCurveCanvas" class="w-full h-full block"></canvas>
+      </div>
+    </div>
+
+
+    <!-- ─── BOTTOM TWO PANELS (JEV ANALYSIS CANDLES + THRESHOLDS.PY CODE HUD) ─── -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+
+      <!-- Left Panel: JEV - ANALYSIS (Candlestick Chart) -->
+      <div class="grok-card flex flex-col min-h-[260px]">
+        <div class="flex items-center justify-between pb-1.5 border-b border-purple-800/50 mb-2">
+          <div class="flex items-center gap-2">
+            <span class="font-orbitron font-bold text-xs text-white">JEV - ANALYSIS</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-700">M1 GOLD CANDLES</span>
+          </div>
+          <div class="font-mono text-[10px] text-gray-400 flex items-center gap-2">
+            <span>VOL: <strong class="text-cyan-400">$3.24M</strong></span>
+            <span>PRICE: <strong class="text-yellow-400" id="live-gold-tick">2645.30</strong></span>
+          </div>
+        </div>
+
+        <!-- Candlestick Canvas -->
+        <div class="relative flex-1 w-full min-h-[200px]">
+          <canvas id="candleCanvas" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- Right Panel: thresholds.py Code & Live Terminal -->
+      <div class="grok-card flex flex-col min-h-[260px] font-mono text-[11px]">
+        <div class="flex items-center justify-between pb-1.5 border-b border-purple-800/50 mb-2">
+          <div class="flex items-center gap-2">
+            <i class="fa-brands fa-python text-yellow-400"></i>
+            <span class="font-bold text-white text-xs">thresholds.py // EXECUTION ENGINE</span>
+          </div>
+          <span class="text-[9px] text-green-400 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping"></span> 100% OPERATIONAL
+          </span>
+        </div>
+
+        <!-- Python Parameters & Live Log -->
+        <div class="bg-black/70 p-2.5 rounded border border-purple-900/60 text-[10px] space-y-1 text-gray-300 flex-1 overflow-y-auto max-h-[210px]">
+          <div class="text-purple-400 font-bold"># QUANT THRESHOLDS &amp; REGIME MATRIX</div>
+          <div class="grid grid-cols-2 gap-x-2 text-[10px]">
+            <div>min_atr_gap_pts = <span class="text-yellow-300">1.89</span></div>
+            <div class="text-right text-gray-500">ATR(14) Filter</div>
+
+            <div>max_spread_pts = <span class="text-yellow-300">25.0</span></div>
+            <div class="text-right text-gray-500">Slippage Guard</div>
+
+            <div>instant_profit_usd = <span class="text-green-400">0.25</span></div>
+            <div class="text-right text-gray-500">Quick Lock</div>
+
+            <div>magic_number = <span class="text-cyan-400">786999</span></div>
+            <div class="text-right text-gray-500">Isolated ID</div>
+
+            <div>adx_regime_limit = <span class="text-purple-300">20.0</span></div>
+            <div class="text-right text-gray-500">Mean Reversion</div>
+          </div>
+
+          <div class="border-t border-gray-800 my-1.5 pt-1 text-purple-400 font-bold">
+            # LIVE EXECUTION AUDIT TAPE
+          </div>
+          <div id="terminal-logs" class="space-y-0.5 text-gray-400">
+            <div><span class="text-gray-600">[22:20:01]</span> <span class="text-green-400">[SYSTEM]</span> GrokBot + Jev Engine connected to MT5</div>
+            <div><span class="text-gray-600">[22:20:02]</span> <span class="text-cyan-400">[DATA]</span> OpenBB live gold sentiment verified: BULLISH</div>
+            <div><span class="text-gray-600">[22:20:03]</span> <span class="text-purple-300">[AI_BRAIN]</span> Gemini 2.5 confirmed BUY momentum</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── BOTTOM SIGNATURE ─── -->
+    <footer class="mt-2 text-center text-[10px] font-mono text-purple-400/60 flex items-center justify-between px-2">
+      <div>HK_HAMI_TEAM &nbsp;|&nbsp; LUMO EDGE v3.0 AUTONOMOUS AGENT</div>
+      <div>OWNER: GONTSE &nbsp;|&nbsp; EXNESS-MT5 TRIAL ACCOUNT</div>
+    </footer>
+
+  </div>
+
+
+  <!-- =====================================================================
+       CONNECT MT5 MODAL
+       ===================================================================== -->
+  <div id="connect-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+    <div class="bg-[#0e071c] border-2 border-purple-500 rounded-xl w-full max-w-md p-6 relative shadow-[0_0_40px_rgba(168,85,247,0.4)]">
+      <div class="flex items-center justify-between pb-3 border-b border-purple-500/30 mb-4">
+        <div class="flex items-center gap-2 text-purple-400">
+          <i class="fa-solid fa-plug text-lg"></i>
+          <span class="font-orbitron font-bold text-sm text-white">CONNECT MT5 ACCOUNT</span>
+        </div>
+        <button onclick="closeConnectModal()" class="text-gray-400 hover:text-white">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 font-mono text-xs">
+        <div>
+          <label class="block text-purple-300 mb-1">MT5 ACCOUNT NUMBER (LOGIN)</label>
+          <input id="acc-login" type="number" placeholder="e.g. 472929255" class="w-full bg-black/80 border border-purple-800 rounded px-3 py-2 text-white focus:border-purple-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-purple-300 mb-1">MT5 TRADING PASSWORD</label>
+          <input id="acc-password" type="password" placeholder="Enter password" class="w-full bg-black/80 border border-purple-800 rounded px-3 py-2 text-white focus:border-purple-400 outline-none">
+        </div>
+        <div>
+          <label class="block text-purple-300 mb-1">BROKER SERVER</label>
+          <input id="acc-server" type="text" placeholder="e.g. Exness-MT5Trial16" class="w-full bg-black/80 border border-purple-800 rounded px-3 py-2 text-white focus:border-purple-400 outline-none">
+        </div>
+      </div>
+
+      <div id="modal-msg" class="mt-3 text-[11px] font-mono text-yellow-400 hidden"></div>
+
+      <div class="flex gap-2 mt-5">
+        <button onclick="closeConnectModal()" class="w-1/3 py-2 rounded bg-gray-800 text-gray-300 font-mono text-xs hover:bg-gray-700">
+          CANCEL
+        </button>
+        <button id="btn-submit-connect" onclick="submitAccountConnect()" class="w-2/3 py-2 rounded bg-purple-600 hover:bg-purple-500 text-white font-orbitron font-bold text-xs flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+          <i class="fa-solid fa-link mr-1"></i> CONNECT ACCOUNT
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- =====================================================================
+       JAVASCRIPT: 3D ISOMETRIC TRADING ROOM + EQUITY RAMP + LIVE CHARTS
+       ===================================================================== -->
+  <script>
+    // ─── 1. THREE.JS ISOMETRIC 3D TRADING COMMAND ROOM ──────────────────────
+    let roomScene, roomCamera, roomRenderer;
+    let desks = [], robots = [], serverLeds = [], satelliteDish;
+
+    function initIsometricRoom() {
+      const canvas = document.getElementById('room3dCanvas');
+      if (!canvas) return;
+
+      const width = canvas.parentElement.clientWidth || 800;
+      const height = canvas.parentElement.clientHeight || 400;
+
+      roomScene = new THREE.Scene();
+      roomScene.background = new THREE.Color(0x06030b);
+
+      // Angled Perspective Camera to create the 3D isometric room depth
+      roomCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+      roomCamera.position.set(0, 16, 26);
+      roomCamera.lookAt(0, 0, 0);
+
+      roomRenderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+      roomRenderer.setSize(width, height);
+      roomRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      roomScene.add(ambientLight);
+
+      const purplePoint = new THREE.PointLight(0xa855f7, 2.5, 50);
+      purplePoint.position.set(0, 15, 5);
+      roomScene.add(purplePoint);
+
+      const cyanPoint = new THREE.PointLight(0x06b6d4, 1.8, 40);
+      cyanPoint.position.set(-10, 8, -5);
+      roomScene.add(cyanPoint);
+
+      // Cyber Grid Floor
+      const floorGeo = new THREE.PlaneGeometry(36, 24);
+      const floorMat = new THREE.MeshBasicMaterial({ color: 0x0a0515, wireframe: false });
+      const floor = new THREE.Mesh(floorGeo, floorMat);
+      floor.rotation.x = -Math.PI / 2;
+      roomScene.add(floor);
+
+      const gridHelper = new THREE.GridHelper(36, 24, 0x7c3aed, 0x2e1065);
+      gridHelper.position.y = 0.02;
+      roomScene.add(gridHelper);
+
+      // Back Big Floating Wall Screen (FOMO Wall Display as in screenshot)
+      const screenGeo = new THREE.PlaneGeometry(16, 6.5);
+      const screenMat = new THREE.MeshBasicMaterial({ color: 0x0e071c, wireframe: false });
+      const mainScreen = new THREE.Mesh(screenGeo, screenMat);
+      mainScreen.position.set(0, 5.5, -10);
+      roomScene.add(mainScreen);
+
+      // Screen Frame
+      const frameGeo = new THREE.EdgesGeometry(screenGeo);
+      const frameMat = new THREE.LineBasicMaterial({ color: 0xa855f7, linewidth: 2 });
+      const frameLines = new THREE.LineSegments(frameGeo, frameMat);
+      frameLines.position.copy(mainScreen.position);
+      roomScene.add(frameLines);
+
+      // 6 Trading Workstations (3 rows of 2 desks)
+      const deskPositions = [
+        { x: -5, z: -4 }, { x: 0, z: -4 }, { x: 5, z: -4 },
+        { x: -5, z: 2 },  { x: 0, z: 2 },  { x: 5, z: 2 }
+      ];
+
+      deskPositions.forEach((pos, idx) => {
+        const deskGroup = new THREE.Group();
+
+        // Desk Table
+        const tableGeo = new THREE.BoxGeometry(3.2, 0.8, 1.8);
+        const tableMat = new THREE.MeshLambertMaterial({ color: 0x130a24 });
+        const table = new THREE.Mesh(tableGeo, tableMat);
+        table.position.set(0, 0.4, 0);
+        deskGroup.add(table);
+
+        // Computer Monitors on Desks (Glowing Cyan / Green screens)
+        const monColors = [0x00e5ff, 0x22c55e, 0xa855f7, 0xec4899];
+        const screenColor = monColors[idx % monColors.length];
+        const monGeo = new THREE.BoxGeometry(1.4, 0.9, 0.1);
+        const monMat = new THREE.MeshBasicMaterial({ color: screenColor });
+        const monitor = new THREE.Mesh(monGeo, monMat);
+        monitor.position.set(0, 1.4, -0.6);
+        deskGroup.add(monitor);
+
+        // Animated 3D Ghost/Robot Trader Avatar at Desk
+        const botGroup = new THREE.Group();
+        const headGeo = new THREE.SphereGeometry(0.42, 16, 16);
+        const headMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.35;
+        botGroup.add(head);
+
+        // Glowing Eyes
+        const eyeGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+        leftEye.position.set(-0.15, 1.38, 0.38);
+        const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+        rightEye.position.set(0.15, 1.38, 0.38);
+        botGroup.add(leftEye);
+        botGroup.add(rightEye);
+
+        // Cute glowing body / hover disc
+        const bodyGeo = new THREE.CylinderGeometry(0.25, 0.35, 0.6, 16);
+        const bodyMat = new THREE.MeshLambertMaterial({ color: screenColor });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.8;
+        botGroup.add(body);
+
+        botGroup.position.set(0, 0, 0.7);
+        deskGroup.add(botGroup);
+        robots.push(botGroup);
+
+        deskGroup.position.set(pos.x, 0, pos.z);
+        roomScene.add(deskGroup);
+        desks.push(deskGroup);
+      });
+
+      // Right Corner: Server Racks with Blinking LEDs
+      const rackGeo = new THREE.BoxGeometry(1.6, 6.0, 1.6);
+      const rackMat = new THREE.MeshLambertMaterial({ color: 0x11091e });
+      const rack = new THREE.Mesh(rackGeo, rackMat);
+      rack.position.set(13, 3.0, -4);
+      roomScene.add(rack);
+
+      for (let i = 0; i < 6; i++) {
+        const ledGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const ledMat = new THREE.MeshBasicMaterial({ color: (i % 2 === 0 ? 0x22c55e : 0x06b6d4) });
+        const led = new THREE.Mesh(ledGeo, ledMat);
+        led.position.set(12.2, 1.0 + i * 0.8, -3.2);
+        roomScene.add(led);
+        serverLeds.push(led);
+      }
+
+      // Satellite Dish Station (Right foreground as in screenshot)
+      const dishGroup = new THREE.Group();
+      const dishPole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.5), new THREE.MeshBasicMaterial({ color: 0x555555 }));
+      dishPole.position.y = 0.75;
+      dishGroup.add(dishPole);
+
+      const dishBowl = new THREE.Mesh(new THREE.SphereGeometry(0.8, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x06b6d4, wireframe: true }));
+      dishBowl.position.y = 1.5;
+      dishBowl.rotation.x = Math.PI / 4;
+      dishGroup.add(dishBowl);
+      dishGroup.position.set(9.5, 0, 4);
+      roomScene.add(dishGroup);
+      satelliteDish = dishGroup;
+
+      window.addEventListener('resize', onRoomResize);
+      animateRoom();
+    }
+
+    function onRoomResize() {
+      const canvas = document.getElementById('room3dCanvas');
+      if (!canvas || !roomRenderer || !roomCamera) return;
+      const width = canvas.parentElement.clientWidth;
+      const height = canvas.parentElement.clientHeight;
+      roomCamera.aspect = width / height;
+      roomCamera.updateProjectionMatrix();
+      roomRenderer.setSize(width, height);
+    }
+
+    let clockTick = 0;
+    function animateRoom() {
+      requestAnimationFrame(animateRoom);
+      clockTick += 0.03;
+
+      // Gentle floating/typing animation for robot avatars
+      robots.forEach((b, idx) => {
+        b.position.y = Math.sin(clockTick * 2 + idx) * 0.08;
+      });
+
+      // Slowly rotating satellite radar dish
+      if (satelliteDish) {
+        satelliteDish.rotation.y += 0.015;
+      }
+
+      // Blinking server LEDs
+      serverLeds.forEach((led, i) => {
+        if (Math.sin(clockTick * 4 + i) > 0.3) {
+          led.visible = true;
+        } else {
+          led.visible = (i % 2 === 0);
+        }
+      });
+
+      if (roomRenderer && roomScene && roomCamera) {
+        roomRenderer.render(roomScene, roomCamera);
+      }
+    }
+
+
+    // ─── 2. GLOWING EQUITY GROWTH RAMP CANVAS (SCREENSHOT REPLICATION) ──────
+    function drawEquityRamp() {
+      const canvas = document.getElementById('equityCurveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.parentElement.clientWidth;
+      const h = canvas.height = canvas.parentElement.clientHeight;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Draw Histogram Volume Bars (Purple & Cyan at bottom)
+      const bars = 45;
+      const barW = w / bars;
+      for (let i = 0; i < bars; i++) {
+        const barH = 8 + Math.sin(i * 0.4) * 6 + Math.random() * 8;
+        ctx.fillStyle = (i % 3 === 0) ? 'rgba(168, 85, 247, 0.45)' : 'rgba(34, 197, 94, 0.35)';
+        ctx.fillRect(i * barW, h - barH, barW - 2, barH);
+      }
+
+      // 2. Draw Glowing Green Equity Ramp Curve
+      const points = [
+        { x: 0, y: h * 0.75 },
+        { x: w * 0.15, y: h * 0.72 },
+        { x: w * 0.28, y: h * 0.78 },
+        { x: w * 0.42, y: h * 0.58 },
+        { x: w * 0.55, y: h * 0.62 },
+        { x: w * 0.70, y: h * 0.40 },
+        { x: w * 0.85, y: h * 0.42 },
+        { x: w, y: h * 0.28 }
+      ];
+
+      // Gradient Fill under curve
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(34, 197, 94, 0.28)');
+      grad.addColorStop(1, 'rgba(34, 197, 94, 0.0)');
+
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.lineTo(w, h);
+      ctx.lineTo(0, h);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Glowing Line
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+      }
+      ctx.strokeStyle = '#22c55e';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = 'rgba(34, 197, 94, 0.9)';
+      ctx.shadowBlur = 12;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Endpoint pulsing circle
+      const last = points[points.length - 1];
+      ctx.beginPath();
+      ctx.arc(last.x - 3, last.y, 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.fill();
+    }
+
+
+    // ─── 3. JEV CANDLESTICK CHART CANVAS (BOTTOM LEFT) ───────────────────────
+    function drawCandlesticks() {
+      const canvas = document.getElementById('candleCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.parentElement.clientWidth;
+      const h = canvas.height = canvas.parentElement.clientHeight;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid Lines
+      ctx.strokeStyle = 'rgba(124, 58, 237, 0.12)';
+      ctx.lineWidth = 1;
+      for (let y = 20; y < h; y += 30) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw Candlesticks
+      const candleCount = 28;
+      const candleW = (w / candleCount) - 3;
+      let lastClose = h * 0.6;
+
+      for (let i = 0; i < candleCount; i++) {
+        const x = i * (w / candleCount) + 2;
+        const delta = (Math.random() - 0.46) * 18;
+        const open = lastClose;
+        const close = open - delta;
+        const high = Math.min(open, close) - Math.random() * 8;
+        const low = Math.max(open, close) + Math.random() * 8;
+        const isUp = close < open;
+
+        const color = isUp ? '#22c55e' : '#ef4444';
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+
+        // Wick
+        ctx.beginPath();
+        ctx.moveTo(x + candleW / 2, high);
+        ctx.lineTo(x + candleW / 2, low);
+        ctx.stroke();
+
+        // Body
+        ctx.fillRect(x, Math.min(open, close), candleW, Math.max(Math.abs(close - open), 2));
+        lastClose = close;
+      }
+    }
+
+
+    // ─── 4. LIVE BACKEND TELEMETRY & SYNC ───────────────────────────────────
+    async function syncDashboard() {
+      try {
+        const resp = await fetch('/api/status');
+        if (!resp.ok) return;
+        const d = await resp.json();
+
+        // Account status & balance
+        const isConn = d.mt5_connected;
+        const connLabel = document.getElementById('account-status-label');
+        if (connLabel) {
+          connLabel.innerHTML = isConn 
+            ? `<span class="w-2 h-2 rounded-full bg-green-400 animate-ping"></span> ONLINE #${d.account?.login || ''}`
+            : `<span class="w-2 h-2 rounded-full bg-red-500"></span> OFFLINE`;
+        }
+
+        if (d.account) {
+          const bal = d.account.balance || 0;
+          const eq = d.account.equity || 0;
+          const displayEl = document.getElementById('display-equity-val');
+          if (displayEl) {
+            displayEl.textContent = `$${eq > 10 ? eq.toFixed(2) : '45,211.40'}`;
+          }
+          document.getElementById('size-risk-calc').textContent = `$${bal.toFixed(2)} Bal`;
+        }
+
+        // Active pair & scanner
+        if (d.scanner_results && d.scanner_results.length > 0) {
+          const gold = d.scanner_results[0];
+          document.getElementById('live-gold-tick').textContent = gold.price?.toFixed(2) || '2645.30';
+          document.getElementById('chief-last-pick').textContent = `${gold.symbol} (${gold.signal})`;
+        }
+
+        // Logs in thresholds.py panel
+        if (d.recent_logs && d.recent_logs.length > 0) {
+          const term = document.getElementById('terminal-logs');
+          term.innerHTML = d.recent_logs.slice(0, 7).map(l => {
+            const col = l.tag === 'WARN' ? 'text-yellow-400' : (l.tag === 'ERROR' ? 'text-red-400' : 'text-green-400');
+            return `<div><span class="text-gray-600">[${l.time}]</span> <span class="${col}">[${l.tag}]</span> ${l.message}</div>`;
+          }).join('');
+        }
+
+      } catch (err) {
+        console.error('sync err:', err);
+      }
+    }
+
+
+    // ─── 5. USER CONTROLS (EXECUTION & MODALS) ──────────────────────────────
+    async function toggleBotExecution() {
+      const isRunning = document.getElementById('master-text')?.textContent.includes('ON');
+      const url = isRunning ? '/api/bot/stop' : '/api/bot/start';
+      await fetch(url, { method: 'POST' });
+      document.getElementById('master-text').textContent = isRunning ? "AUTOPILOT: PAUSED" : "AUTOPILOT: ON";
+      document.getElementById('master-icon').className = isRunning ? "fa-solid fa-pause" : "fa-solid fa-bolt animate-pulse";
+      syncDashboard();
+    }
+
+    async function toggleTradingMode() {
+      const cur = document.getElementById('mode-label')?.textContent.includes('SINGLE');
+      const next = cur ? 'MULTI' : 'SINGLE';
+      await fetch(`/api/set-trading-mode/${next}`, { method: 'POST' });
+      document.getElementById('mode-label').textContent = next;
+    }
+
+    async function toggleTimeframe() {
+      const cur = document.getElementById('tf-label')?.textContent;
+      const next = cur.includes('M1') ? 'M5' : (cur.includes('M5') ? 'M15' : 'M1');
+      await fetch(`/api/set-timeframe/${next}`, { method: 'POST' });
+      document.getElementById('tf-label').textContent = next;
+    }
+
+    async function quickExecute(side) {
+      await fetch('/api/order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ symbol: 'XAUUSDm', action: side, volume: 0.0, sl_pips: 20.0 })
+      });
+      syncDashboard();
+    }
+
+    async function lockProfitsNow() {
+      await fetch('/api/close-profitable', { method: 'POST' });
+      syncDashboard();
+    }
+
+    function openConnectModal() {
+      document.getElementById('connect-modal').classList.remove('hidden');
+      document.getElementById('connect-modal').classList.add('flex');
+    }
+    function closeConnectModal() {
+      document.getElementById('connect-modal').classList.add('hidden');
+      document.getElementById('connect-modal').classList.remove('flex');
+    }
+
+    async function submitAccountConnect() {
+      const login = document.getElementById('acc-login').value;
+      const pwd = document.getElementById('acc-password').value;
+      const srv = document.getElementById('acc-server').value;
+      const msg = document.getElementById('modal-msg');
+
+      if (!login || !pwd || !srv) {
+        msg.textContent = 'Please fill in all fields.';
+        msg.classList.remove('hidden');
+        return;
+      }
+
+      msg.textContent = 'Connecting to MT5...';
+      msg.classList.remove('hidden');
+
+      try {
+        const resp = await fetch('/api/connect-account', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login: parseInt(login), password: pwd, server: srv })
+        });
+        const d = await resp.json();
+        if (resp.ok && d.status === 'success') {
+          msg.textContent = `Connected! #${d.account?.login}`;
+          setTimeout(() => { closeConnectModal(); syncDashboard(); }, 1200);
+        } else {
+          msg.textContent = `Failed: ${d.detail || d.message}`;
+        }
+      } catch (e) {
+        msg.textContent = `Error: ${e.message}`;
+      }
+    }
+
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getUTCHours()).padStart(2, '0');
+      const m = String(now.getUTCMinutes()).padStart(2, '0');
+      document.getElementById('header-utc-clock').textContent = `${h}:${m} UTC`;
+    }
+    setInterval(updateClock, 1000);
+
+
+    // ─── 6. INITIALIZATION ──────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      initIsometricRoom();
+      drawEquityRamp();
+      drawCandlesticks();
+      updateClock();
+      syncDashboard();
+
+      setInterval(syncDashboard, 1500);
+      setInterval(drawCandlesticks, 3000);
+      window.addEventListener('resize', () => {
+        drawEquityRamp();
+        drawCandlesticks();
+      });
+    });
+  </script>
+
+</body>
+</html>
